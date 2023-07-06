@@ -18,8 +18,8 @@ Comparison for sorting 1 Million int elements with range from 0 to 1000 in an AM
 
 | Algorithm                      | AVG CPU time [ms] |
 |--------------------------------|------------------:|
-| Python 3.9.10 sort             |               114 |
-| Python 3.9.10 RadixBitSorter   |               373 |
+| Python 3.9.10 sort             |               117 |
+| Python 3.9.10 RadixBitSorter   |               369 |
 | pypy3.9-v7.3.9 sort            |               103 |
 | pypy3.9-v7.3.9 RadixBitSorter  |                11 |
 

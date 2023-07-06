@@ -9,20 +9,19 @@ import time
 # import numpy
 
 
-def arrayCopy(src: list[int], srcPos: int, dest, destPos: int, length: int):
+def array_copy(src: list[int], srcPos: int, dest, destPos: int, length: int):
     dest[destPos:destPos + length] = src[srcPos:srcPos + length]
     # for i in range(length):
     #     dest[i + destPos] = src[i + srcPos]
 
 
-def newArray(length: int):
+def new_array(length: int):
     # numpy.empty(length, dtype=int)
     # return numpy.zeros((length,), numpy.int32)
     return [0] * length
 
 
-
-def getMaskBit(array: list[int], start: int, end: int) -> list[int]:
+def get_mask_info(array: list[int], start: int, end: int) -> list[int]:
     mask: int = 0x00000000
     inv_mask: int = 0x00000000
     for i in range(start, end):
@@ -32,7 +31,7 @@ def getMaskBit(array: list[int], start: int, end: int) -> list[int]:
     return [mask, inv_mask]
 
 
-def getMaskAsArray(mask: int) -> list[int]:
+def get_mask_as_array(mask: int) -> list[int]:
     res: list[int] = []
     for i in reversed(range(0, 32)):
         if ((mask >> i) & 1) == 1:
@@ -40,21 +39,7 @@ def getMaskAsArray(mask: int) -> list[int]:
     return res
 
 
-# def getMaskBit(k):
-#    return 1 << k
-
-
-def twoPowerX(k) -> int:
-    return 1 << k
-
-
-def swap(array: list[int], left: int, right: int):
-    aux: int = array[left]
-    array[left] = array[right]
-    array[right] = aux
-
-
-def partitionNotStable(array: list[int], start: int, end: int, mask: int) -> int:
+def partition_not_stable(array: list[int], start: int, end: int, mask: int) -> int:
     left: int = start
     right: int = end - 1
 
@@ -66,7 +51,7 @@ def partitionNotStable(array: list[int], start: int, end: int, mask: int) -> int
             while left <= right:
                 element = array[right]
                 if (element & mask) == 0:
-                    swap(array, left, right)
+                    (array[left], array[right]) = (array[right], array[left])
                     left += 1
                     right -= 1
                     break
@@ -75,7 +60,7 @@ def partitionNotStable(array: list[int], start: int, end: int, mask: int) -> int
     return left
 
 
-def partitionReverseNotStable(array: list[int], start: int, end: int, mask: int) -> int:
+def partition_reverse_not_stable(array: list[int], start: int, end: int, mask: int) -> int:
     left: int = start
     right: int = end - 1
 
@@ -87,7 +72,7 @@ def partitionReverseNotStable(array: list[int], start: int, end: int, mask: int)
                 if (element & mask) == 0:
                     right -= 1
                 else:
-                    swap(array, left, right)
+                    (array[left], array[right]) = (array[right], array[left])
                     left += 1
                     right -= 1
                     break
@@ -96,7 +81,7 @@ def partitionReverseNotStable(array: list[int], start: int, end: int, mask: int)
     return left
 
 
-def partitionStable(array: list[int], start: int, end: int, mask: int, aux: list[int]) -> int:
+def partition_stable(array: list[int], start: int, end: int, mask: int, aux: list[int]) -> int:
     left: int = start
     right: int = 0
     for i in range(start, end):
@@ -108,45 +93,49 @@ def partitionStable(array: list[int], start: int, end: int, mask: int, aux: list
             aux[right] = element
             right += 1
 
-    arrayCopy(aux, 0, array, left, right)
+    array_copy(aux, 0, array, left, right)
     return left
 
 
-def partitionStableLastBits(array: list[int], start: int, end: int, mask: int, twoPowerK: int, aux: list[int]):
-    leftX: list[int] = newArray(twoPowerK)
-    count: list[int] = newArray(twoPowerK)
+def partition_stable_last_bits(array: list[int], start: int, end: int, mask: int, twoPowerK: int, aux: list[int]):
+    count: list[int] = new_array(twoPowerK)
     for i in range(start, end):
         count[array[i] & mask] += 1
 
-    for i in range(1, twoPowerK):
-        leftX[i] = leftX[i - 1] + count[i - 1]
+    aux_sum: int = 0
+    for i in range(0, twoPowerK):
+        count_i: int = count[i]
+        count[i] = aux_sum
+        aux_sum += count_i
 
     for i in range(start, end):
         element: int = array[i]
-        elementShiftMasked: int = element & mask
-        aux[leftX[elementShiftMasked]] = element
-        leftX[elementShiftMasked] += 1
+        element_shift_masked: int = element & mask
+        aux[count[element_shift_masked]] = element
+        count[element_shift_masked] += 1
 
-    arrayCopy(aux, 0, array, start, end - start)
+    array_copy(aux, 0, array, start, end - start)
 
 
-def partitionStableGroupBits(array: list[int], start: int, end: int, mask: int, shiftRight: int, twoPowerK: int, aux):
-    leftX: list[int] = newArray(twoPowerK)
-    count: list[int] = newArray(twoPowerK)
+def partition_stable_one_group_bits(array: list[int], start: int, end: int, mask: int, shiftRight: int, twoPowerK: int, aux):
+    count: list[int] = new_array(twoPowerK)
 
     for i in range(start, end):
         count[(array[i] & mask) >> shiftRight] += 1
 
-    for i in range(1, twoPowerK):
-        leftX[i] = leftX[i - 1] + count[i - 1]
+    aux_sum: int = 0
+    for i in range(0, twoPowerK):
+        count_i: int = count[i]
+        count[i] = aux_sum
+        aux_sum += count_i
 
     for i in range(start, end):
         element: int = array[i]
-        elementShiftMasked: int = (element & mask) >> shiftRight
-        aux[leftX[elementShiftMasked]] = element
-        leftX[elementShiftMasked] += 1
+        element_shift_masked: int = (element & mask) >> shiftRight
+        aux[count[element_shift_masked]] = element
+        count[element_shift_masked] += 1
 
-    arrayCopy(aux, 0, array, start, end - start)
+    array_copy(aux, 0, array, start, end - start)
 
 
 def sort(array: list[int]):
@@ -156,47 +145,48 @@ def sort(array: list[int]):
     start: int = 0
     end: int = len(array)
 
-    maskParts = getMaskBit(array, start, end)
-    mask: int = maskParts[0] & maskParts[1]
-    kList = getMaskAsArray(mask)
+    mask_parts = get_mask_info(array, start, end)
+    mask: int = mask_parts[0] & mask_parts[1]
+    kList = get_mask_as_array(mask)
     if len(kList) == 0:
         return
 
     if kList[0] == 31:
-        sortMask: int = twoPowerX(kList[0])
-        finalLeft: int = partitionNotStable(array, start, end, sortMask)
+        k = kList[0]
+        sortMask: int = 1 << k
+        finalLeft: int = partition_not_stable(array, start, end, sortMask)
         if finalLeft - start > 1:
-            aux = newArray(finalLeft - start)
-            maskParts = getMaskBit(array, start, finalLeft)
-            mask = maskParts[0] & maskParts[1]
-            kList = getMaskAsArray(mask)
-            radixSort(array, start, finalLeft, kList, len(kList) - 1, 0, aux)
+            aux = new_array(finalLeft - start)
+            mask_parts = get_mask_info(array, start, finalLeft)
+            mask = mask_parts[0] & mask_parts[1]
+            kList = get_mask_as_array(mask)
+            radix_bit_sort(array, start, finalLeft, kList, len(kList) - 1, 0, aux)
 
         if end - finalLeft > 1:
-            aux = newArray(end - finalLeft)
-            maskParts = getMaskBit(array, finalLeft, end)
-            mask = maskParts[0] & maskParts[1]
-            kList = getMaskAsArray(mask)
-            radixSort(array, finalLeft, end, kList, len(kList) - 1, 0, aux)
+            aux = new_array(end - finalLeft)
+            mask_parts = get_mask_info(array, finalLeft, end)
+            mask = mask_parts[0] & mask_parts[1]
+            kList = get_mask_as_array(mask)
+            radix_bit_sort(array, finalLeft, end, kList, len(kList) - 1, 0, aux)
 
     else:
-        aux = newArray(end - start)
-        radixSort(array, start, end, kList, len(kList) - 1, 0, aux)
+        aux = new_array(end - start)
+        radix_bit_sort(array, start, end, kList, len(kList) - 1, 0, aux)
 
 
-def radixSort(array, start: int, end: int, kList, kIndexStart: int, kIndexEnd: int, aux):
+def radix_bit_sort(array, start: int, end: int, kList, kIndexStart: int, kIndexEnd: int, aux):
     #        for (int i = kIndexStart; i >= kIndexEnd; i--) {
     i: int = kIndexStart
     while i >= kIndexEnd:
         kListI = kList[i]
-        maskI: int = twoPowerX(kListI)
+        maskI: int = 1 << kListI
         bits: int = 1
         imm: int = 0
         for j in reversed(range(1, 12)):
             if i - j >= kIndexEnd:
                 kListIm1 = kList[i - j]
                 if kListIm1 == kListI + j:
-                    maskIm1 = twoPowerX(kListIm1)
+                    maskIm1 = 1 << kListIm1
                     maskI = maskI | maskIm1
                     bits += 1
                     imm += 1
@@ -204,13 +194,13 @@ def radixSort(array, start: int, end: int, kList, kIndexStart: int, kIndexEnd: i
                     break
         i -= imm
         if bits == 1:
-            partitionStable(array, start, end, maskI, aux)
+            partition_stable(array, start, end, maskI, aux)
         else:
-            twoPowerBits: int = twoPowerX(bits)
+            twoPowerBits: int = 1 << bits
             if kListI == 0:
-                partitionStableLastBits(array, start, end, maskI, twoPowerBits, aux)
+                partition_stable_last_bits(array, start, end, maskI, twoPowerBits, aux)
             else:
-                partitionStableGroupBits(array, start, end, maskI, kListI, twoPowerBits, aux)
+                partition_stable_one_group_bits(array, start, end, maskI, kListI, twoPowerBits, aux)
         i -= 1
 
 
