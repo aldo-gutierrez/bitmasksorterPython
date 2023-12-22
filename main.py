@@ -1,27 +1,19 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import random
 import time
 
 
-# import numpy
-
-
-def array_copy(src: list[int], srcPos: int, dest, destPos: int, length: int):
-    dest[destPos:destPos + length] = src[srcPos:srcPos + length]
+def array_copy(src: list[int], src_pos: int, dest: list[int], dest_pos: int, length: int):
+    dest[dest_pos:dest_pos + length] = src[src_pos:src_pos + length]
+    # this is faster in pypy
     # for i in range(length):
-    #     dest[i + destPos] = src[i + srcPos]
+    #     dest[i + dest_pos] = src[i + src_pos]
 
 
 def new_array(length: int):
-    # numpy.empty(length, dtype=int)
-    # return numpy.zeros((length,), numpy.int32)
     return [0] * length
 
 
-def get_mask_info(array: list[int], start: int, end: int) -> list[int]:
+def calculate_mask_int(array: list[int], start: int, end: int) -> list[int]:
     mask: int = 0x00000000
     inv_mask: int = 0x00000000
     for i in range(start, end):
@@ -39,9 +31,9 @@ def get_mask_as_array(mask: int) -> list[int]:
     return res
 
 
-def partition_not_stable(array: list[int], start: int, end: int, mask: int) -> int:
+def partition_not_stable(array: list[int], start: int, end_p1: int, mask: int) -> int:
     left: int = start
-    right: int = end - 1
+    right: int = end_p1 - 1
 
     while left <= right:
         element: int = array[left]
@@ -60,9 +52,9 @@ def partition_not_stable(array: list[int], start: int, end: int, mask: int) -> i
     return left
 
 
-def partition_reverse_not_stable(array: list[int], start: int, end: int, mask: int) -> int:
+def partition_reverse_not_stable(array: list[int], start: int, end_p1: int, mask: int) -> int:
     left: int = start
-    right: int = end - 1
+    right: int = end_p1 - 1
 
     while left <= right:
         element: int = array[left]
@@ -81,10 +73,10 @@ def partition_reverse_not_stable(array: list[int], start: int, end: int, mask: i
     return left
 
 
-def partition_stable(array: list[int], start: int, end: int, mask: int, aux: list[int]) -> int:
+def partition_stable(array: list[int], start: int, end_p1: int, mask: int, aux: list[int]) -> int:
     left: int = start
     right: int = 0
-    for i in range(start, end):
+    for i in range(start, end_p1):
         element: int = array[i]
         if (element & mask) == 0:
             array[left] = element
@@ -97,41 +89,42 @@ def partition_stable(array: list[int], start: int, end: int, mask: int, aux: lis
     return left
 
 
-def partition_stable_last_bits(array: list[int], start: int, end: int, mask: int, twoPowerK: int, aux: list[int]):
-    count: list[int] = new_array(twoPowerK)
-    for i in range(start, end):
+def partition_stable_last_bits(array: list[int], start: int, end_p1: int, mask: int, d_range: int, aux: list[int]):
+    count: list[int] = new_array(d_range)
+    for i in range(start, end_p1):
         count[array[i] & mask] += 1
 
-    aux_sum: int = 0
-    for i in range(0, twoPowerK):
+    sum: int = 0
+    for i in range(0, d_range):
         count_i: int = count[i]
-        count[i] = aux_sum
-        aux_sum += count_i
+        count[i] = sum
+        sum += count_i
 
-    for i in range(start, end):
+    for i in range(start, end_p1):
         element: int = array[i]
         element_shift_masked: int = element & mask
         aux[count[element_shift_masked]] = element
         count[element_shift_masked] += 1
 
-    array_copy(aux, 0, array, start, end - start)
+    array_copy(aux, 0, array, start, end_p1 - start)
 
 
-def partition_stable_one_group_bits(array: list[int], start: int, end: int, mask: int, shiftRight: int, twoPowerK: int, aux):
-    count: list[int] = new_array(twoPowerK)
+def partition_stable_one_group_bits(array: list[int], start: int, end: int, mask: int, shift_right: int,
+                                    d_range: int, aux):
+    count: list[int] = new_array(d_range)
 
     for i in range(start, end):
-        count[(array[i] & mask) >> shiftRight] += 1
+        count[(array[i] & mask) >> shift_right] += 1
 
-    aux_sum: int = 0
-    for i in range(0, twoPowerK):
+    sum: int = 0
+    for i in range(0, d_range):
         count_i: int = count[i]
-        count[i] = aux_sum
-        aux_sum += count_i
+        count[i] = sum
+        sum += count_i
 
     for i in range(start, end):
         element: int = array[i]
-        element_shift_masked: int = (element & mask) >> shiftRight
+        element_shift_masked: int = (element & mask) >> shift_right
         aux[count[element_shift_masked]] = element
         count[element_shift_masked] += 1
 
@@ -143,64 +136,74 @@ def sort(array: list[int]):
         return
 
     start: int = 0
-    end: int = len(array)
+    end_p1: int = len(array)
 
-    mask_parts = get_mask_info(array, start, end)
+    mask_parts = calculate_mask_int(array, start, end_p1)
     mask: int = mask_parts[0] & mask_parts[1]
-    kList = get_mask_as_array(mask)
-    if len(kList) == 0:
+    b_list = get_mask_as_array(mask)
+    if len(b_list) == 0:
         return
 
-    if kList[0] == 31:
-        k = kList[0]
-        sortMask: int = 1 << k
-        finalLeft: int = partition_not_stable(array, start, end, sortMask)
-        if finalLeft - start > 1:
-            aux = new_array(finalLeft - start)
-            mask_parts = get_mask_info(array, start, finalLeft)
-            mask = mask_parts[0] & mask_parts[1]
-            kList = get_mask_as_array(mask)
-            radix_bit_sort(array, start, finalLeft, kList, len(kList) - 1, 0, aux)
+    if b_list[0] == 31:
+        k = b_list[0]
+        final_left: int = partition_not_stable(array, start, end_p1, 1 << k)
+        n1 = final_left - start
+        n2 = end_p1 - final_left
+        mask1 = 0
+        mask2 = 0
+        if n1 > 1:
+            mask_parts = calculate_mask_int(array, start, final_left)
+            mask1 = mask_parts[0] & mask_parts[1]
+            if mask1 == 0:
+                n1 = 0
+        if n2 > 1:
+            mask_parts = calculate_mask_int(array, final_left, end_p1)
+            mask2 = mask_parts[0] & mask_parts[1]
+            if mask2 == 0:
+                n2 = 0
 
-        if end - finalLeft > 1:
-            aux = new_array(end - finalLeft)
-            mask_parts = get_mask_info(array, finalLeft, end)
-            mask = mask_parts[0] & mask_parts[1]
-            kList = get_mask_as_array(mask)
-            radix_bit_sort(array, finalLeft, end, kList, len(kList) - 1, 0, aux)
+        aux = new_array(max(n1, n2))
+
+        if n1 > 1:
+            b_list = get_mask_as_array(mask1)
+            radix_bit_sort(array, start, final_left, b_list, len(b_list) - 1, 0, aux)
+
+        if n2 > 1:
+            b_list = get_mask_as_array(mask2)
+            radix_bit_sort(array, final_left, end_p1, b_list, len(b_list) - 1, 0, aux)
 
     else:
-        aux = new_array(end - start)
-        radix_bit_sort(array, start, end, kList, len(kList) - 1, 0, aux)
+        aux = new_array(end_p1 - start)
+        radix_bit_sort(array, start, end_p1, b_list, len(b_list) - 1, 0, aux)
 
 
-def radix_bit_sort(array, start: int, end: int, kList, kIndexStart: int, kIndexEnd: int, aux):
+def radix_bit_sort(array, start: int, end_p1: int, b_list, kIndexStart: int, kIndexEnd: int, aux: list[int]):
     #        for (int i = kIndexStart; i >= kIndexEnd; i--) {
     i: int = kIndexStart
     while i >= kIndexEnd:
-        kListI = kList[i]
-        maskI: int = 1 << kListI
+        kListI = b_list[i]
+        mask: int = 1 << kListI
         bits: int = 1
         imm: int = 0
         for j in reversed(range(1, 12)):
             if i - j >= kIndexEnd:
-                kListIm1 = kList[i - j]
+                kListIm1 = b_list[i - j]
                 if kListIm1 == kListI + j:
                     maskIm1 = 1 << kListIm1
-                    maskI = maskI | maskIm1
+                    mask = mask | maskIm1
                     bits += 1
                     imm += 1
                 else:
                     break
         i -= imm
         if bits == 1:
-            partition_stable(array, start, end, maskI, aux)
+            partition_stable(array, start, end_p1, mask, aux)
         else:
-            twoPowerBits: int = 1 << bits
+            d_range: int = 1 << bits
             if kListI == 0:
-                partition_stable_last_bits(array, start, end, maskI, twoPowerBits, aux)
+                partition_stable_last_bits(array, start, end_p1, mask, d_range, aux)
             else:
-                partition_stable_one_group_bits(array, start, end, maskI, kListI, twoPowerBits, aux)
+                partition_stable_one_group_bits(array, start, end_p1, mask, kListI, d_range, aux)
         i -= 1
 
 
@@ -221,23 +224,23 @@ totalElapsedK = 0
 
 for j in range(0, ITERATIONS):
     vet = [random.randint(0, RANGE) for _ in range(SIZE)]
-    start = time.time()
+    start_t = time.time()
     vet.sort()
-    end = time.time()
-    elapsedP = end - start
+    end_t = time.time()
+    elapsedP = end_t - start_t
     totalElapsedP += elapsedP
 
     vet = [random.randint(0, RANGE) for _ in range(SIZE)]
-    start = time.time()
+    start_t = time.time()
     sort(vet)
-    end = time.time()
-    elapsedK = end - start
+    end_t = time.time()
+    elapsedK = end_t - start_t
     totalElapsedK += elapsedK
 
     print("elapsed python " + str(elapsedP) + " s.")
     print("elapsed radixb " + str(elapsedK) + " s.")
     print("\n")
 
-print("elapsed AVG python " + str(totalElapsedP/ITERATIONS) + " s.")
-print("elapsed AVG radixb " + str(totalElapsedK/ITERATIONS) + " s.")
+print("elapsed AVG python " + str(totalElapsedP / ITERATIONS) + " s.")
+print("elapsed AVG radixb " + str(totalElapsedK / ITERATIONS) + " s.")
 print("\n")
