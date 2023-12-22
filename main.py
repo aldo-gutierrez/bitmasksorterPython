@@ -166,45 +166,69 @@ def sort(array: list[int]):
 
         if n1 > 1:
             b_list = get_mask_as_array(mask1)
-            radix_bit_sort(array, start, final_left, b_list, len(b_list) - 1, 0, aux)
+            radix_bit_sort(array, start, final_left, b_list, aux)
 
         if n2 > 1:
             b_list = get_mask_as_array(mask2)
-            radix_bit_sort(array, final_left, end_p1, b_list, len(b_list) - 1, 0, aux)
+            radix_bit_sort(array, final_left, end_p1, b_list, aux)
 
     else:
         aux = new_array(end_p1 - start)
-        radix_bit_sort(array, start, end_p1, b_list, len(b_list) - 1, 0, aux)
+        radix_bit_sort(array, start, end_p1, b_list, aux)
+    return
 
 
-def radix_bit_sort(array, start: int, end_p1: int, b_list, kIndexStart: int, kIndexEnd: int, aux: list[int]):
-    #        for (int i = kIndexStart; i >= kIndexEnd; i--) {
-    i: int = kIndexStart
-    while i >= kIndexEnd:
-        kListI = b_list[i]
-        mask: int = 1 << kListI
-        bits: int = 1
-        imm: int = 0
-        for j in reversed(range(1, 12)):
-            if i - j >= kIndexEnd:
-                kListIm1 = b_list[i - j]
-                if kListIm1 == kListI + j:
-                    maskIm1 = 1 << kListIm1
-                    mask = mask | maskIm1
-                    bits += 1
-                    imm += 1
-                else:
-                    break
-        i -= imm
+def reverse_list_get(b_list, index):
+    return b_list[len(b_list) - 1 - index]
+
+
+def getSections(bList):
+    if len(bList) == 0:
+        return ()
+
+    max_bits_digit = 11
+    sections = []
+    b = 0
+    shift = reverse_list_get(bList, b)
+    bits = 1
+    b = b + 1
+    while b < len(bList):
+        bitIndex = reverse_list_get(bList, b)
+        if bitIndex <= shift + max_bits_digit - 1:
+            bits = (bitIndex - shift + 1)
+        else:
+            sections.append((bits, shift, shift + bits - 1))
+            shift = bitIndex
+            bits = 1
+        b = b + 1
+
+    sections.append((bits, shift, shift + bits - 1))
+    return sections
+
+
+def get_mask_range_bits(b_start: int, b_end: int):
+    return ((1 << b_start + 1 - b_end) - 1) << b_end
+
+
+def radix_bit_sort(array, start: int, end_p1: int, b_list, aux: list[int]):
+    sections = getSections(b_list)
+    index = 0
+    while index < len(sections):
+        res = sections[index]
+        bits = res[0]
+        shift = res[1]
+        b_start = res[2]
+        mask = get_mask_range_bits(b_start, shift)
         if bits == 1:
             partition_stable(array, start, end_p1, mask, aux)
         else:
-            d_range: int = 1 << bits
-            if kListI == 0:
+            d_range = 1 << bits
+            if shift == 0:
                 partition_stable_last_bits(array, start, end_p1, mask, d_range, aux)
             else:
-                partition_stable_one_group_bits(array, start, end_p1, mask, kListI, d_range, aux)
-        i -= 1
+                partition_stable_one_group_bits(array, start, end_p1, mask, shift, d_range, aux)
+        index = index + 1
+    return
 
 
 # Press the green button in the gutter to run the script.
