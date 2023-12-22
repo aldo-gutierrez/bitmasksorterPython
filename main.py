@@ -247,8 +247,10 @@ totalElapsedP = 0
 totalElapsedK = 0
 
 for j in range(0, ITERATIONS):
-    # vet = [random.randint(0, RANGE) for _ in range(SIZE)]
-    vet = [random.randint(0, RANGE) - int(RANGE/2) for _ in range(SIZE)]
+    # positive numbers
+    vet = [random.randint(0, RANGE) for _ in range(SIZE)]
+    # negative numbers
+    # vet = [random.randint(0, RANGE) - int(RANGE/2) for _ in range(SIZE)]
     vet2 = vet.copy()
     start_t = time.time()
     vet.sort()
