@@ -131,7 +131,7 @@ def partition_stable_one_group_bits(array: list[int], start: int, end: int, mask
     array_copy(aux, 0, array, start, end - start)
 
 
-def sort(array: list[int]):
+def sort_int(array: list[int]):
     if len(array) < 2:
         return
 
@@ -146,7 +146,7 @@ def sort(array: list[int]):
 
     if b_list[0] == 31:
         k = b_list[0]
-        final_left: int = partition_not_stable(array, start, end_p1, 1 << k)
+        final_left: int = partition_reverse_not_stable(array, start, end_p1, 1 << k)
         n1 = final_left - start
         n2 = end_p1 - final_left
         mask1 = 0
@@ -182,23 +182,23 @@ def reverse_list_get(b_list, index):
     return b_list[len(b_list) - 1 - index]
 
 
-def getSections(bList):
-    if len(bList) == 0:
+def get_sections(b_list):
+    if len(b_list) == 0:
         return ()
 
     max_bits_digit = 11
     sections = []
     b = 0
-    shift = reverse_list_get(bList, b)
+    shift = reverse_list_get(b_list, b)
     bits = 1
     b = b + 1
-    while b < len(bList):
-        bitIndex = reverse_list_get(bList, b)
-        if bitIndex <= shift + max_bits_digit - 1:
-            bits = (bitIndex - shift + 1)
+    while b < len(b_list):
+        bit_index = reverse_list_get(b_list, b)
+        if bit_index <= shift + max_bits_digit - 1:
+            bits = (bit_index - shift + 1)
         else:
             sections.append((bits, shift, shift + bits - 1))
-            shift = bitIndex
+            shift = bit_index
             bits = 1
         b = b + 1
 
@@ -211,7 +211,7 @@ def get_mask_range_bits(b_start: int, b_end: int):
 
 
 def radix_bit_sort(array, start: int, end_p1: int, b_list, aux: list[int]):
-    sections = getSections(b_list)
+    sections = get_sections(b_list)
     index = 0
     while index < len(sections):
         res = sections[index]
@@ -247,19 +247,24 @@ totalElapsedP = 0
 totalElapsedK = 0
 
 for j in range(0, ITERATIONS):
-    vet = [random.randint(0, RANGE) for _ in range(SIZE)]
+    # vet = [random.randint(0, RANGE) for _ in range(SIZE)]
+    vet = [random.randint(0, RANGE) - int(RANGE/2) for _ in range(SIZE)]
+    vet2 = vet.copy()
     start_t = time.time()
     vet.sort()
     end_t = time.time()
     elapsedP = end_t - start_t
     totalElapsedP += elapsedP
 
-    vet = [random.randint(0, RANGE) for _ in range(SIZE)]
     start_t = time.time()
-    sort(vet)
+    sort_int(vet2)
     end_t = time.time()
     elapsedK = end_t - start_t
     totalElapsedK += elapsedK
+
+    for i in range(0, SIZE):
+        if (vet[i] != vet2[i]):
+            print("arrays are not equal")
 
     print("elapsed python " + str(elapsedP) + " s.")
     print("elapsed radixb " + str(elapsedK) + " s.")
